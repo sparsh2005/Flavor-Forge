@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { Recipe } from "@shared/schema";
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   ChefHat, 
   Coffee, 
@@ -16,11 +16,17 @@ import {
   Cake, 
   Wine, 
   Salad,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Beef,
+  Fish,
+  Egg,
+  Soup,
+  Cookie
 } from "lucide-react";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [_, navigate] = useLocation();
   
   const { data: topRecipes = [], isLoading: topRecipesLoading } = useQuery<Recipe[]>({
     queryKey: ["/api/recipes/top"],
@@ -29,11 +35,38 @@ export default function HomePage() {
   const { data: recentRecipes = [], isLoading: recentRecipesLoading } = useQuery<Recipe[]>({
     queryKey: ["/api/recipes/recent"],
   });
+  
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<string[]>({
+    queryKey: ["/api/categories"],
+  });
+  
+  // Icon mapping for categories
+  const categoryIcons: Record<string, any> = {
+    'Beef': Beef,
+    'Chicken': ChefHat,
+    'Dessert': Cake,
+    'Lamb': Utensils,
+    'Miscellaneous': UtensilsCrossed,
+    'Pasta': Soup,
+    'Pork': Salad,
+    'Seafood': Fish,
+    'Side': Coffee,
+    'Starter': Egg, 
+    'Vegan': Wine,
+    'Vegetarian': Salad,
+    'Breakfast': Coffee,
+    'Goat': Utensils,
+    'Lunch': Utensils,
+    'Dinner': UtensilsCrossed,
+    'Beverages': Wine,
+    'Cookies': Cookie
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
-    console.log("Searching for:", searchQuery);
+    if (searchQuery.trim()) {
+      navigate(`/recipes/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -112,9 +145,9 @@ export default function HomePage() {
                   prepTime={recipe.prepTime}
                   cookTime={recipe.cookTime}
                   difficulty={recipe.difficulty}
-                  calories={recipe.calories}
-                  author="John Doe" // This would come from a join with the users table
-                  rating={4.8} // This would come from reviews in a real app
+                  calories={recipe.calories || undefined}
+                  author={recipe.source || "TheMealDB"}
+                  rating={4.5}
                 />
               ))
             ) : (
@@ -159,8 +192,8 @@ export default function HomePage() {
                   prepTime={recipe.prepTime}
                   cookTime={recipe.cookTime}
                   difficulty={recipe.difficulty}
-                  calories={recipe.calories}
-                  author="Jane Smith" // This would come from a join with the users table
+                  calories={recipe.calories || undefined}
+                  author={recipe.source || "TheMealDB"}
                   createdAt={recipe.createdAt}
                   showCreatedAt={true}
                 />
@@ -182,12 +215,37 @@ export default function HomePage() {
           </h2>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <CategoryItem icon={Coffee} label="Breakfast" href="/" />
-            <CategoryItem icon={Utensils} label="Lunch" href="/" />
-            <CategoryItem icon={UtensilsCrossed} label="Dinner" href="/" />
-            <CategoryItem icon={Cake} label="Desserts" href="/" />
-            <CategoryItem icon={Wine} label="Beverages" href="/" />
-            <CategoryItem icon={Salad} label="Vegetarian" href="/" />
+            {categoriesLoading ? (
+              // Show skeleton loading state
+              Array(6).fill(0).map((_, index) => (
+                <div key={index} className="animate-pulse flex flex-col items-center">
+                  <div className="bg-gray-200 rounded-full h-16 w-16 mb-3"></div>
+                  <div className="bg-gray-200 h-4 w-20 rounded"></div>
+                </div>
+              ))
+            ) : categories.length > 0 ? (
+              categories.map(category => {
+                const Icon = categoryIcons[category] || UtensilsCrossed;
+                return (
+                  <CategoryItem 
+                    key={category}
+                    icon={Icon} 
+                    label={category} 
+                    href={`/recipes/category/${category}`} 
+                  />
+                );
+              })
+            ) : (
+              // Fallback categories if API doesn't return any
+              <>
+                <CategoryItem icon={Coffee} label="Breakfast" href="/recipes/category/Breakfast" />
+                <CategoryItem icon={Utensils} label="Lunch" href="/recipes/category/Lunch" />
+                <CategoryItem icon={UtensilsCrossed} label="Dinner" href="/recipes/category/Dinner" />
+                <CategoryItem icon={Cake} label="Desserts" href="/recipes/category/Dessert" />
+                <CategoryItem icon={Wine} label="Beverages" href="/recipes/category/Beverages" />
+                <CategoryItem icon={Salad} label="Vegetarian" href="/recipes/category/Vegetarian" />
+              </>
+            )}
           </div>
         </div>
       </section>

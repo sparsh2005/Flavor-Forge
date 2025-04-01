@@ -33,6 +33,7 @@ export const recipes = pgTable("recipes", {
   calories: integer("calories"),
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  source: text("source"), // Source of the recipe (e.g., TheMealDB, user submitted)
 });
 
 export const insertRecipeSchema = createInsertSchema(recipes).pick({
@@ -44,6 +45,7 @@ export const insertRecipeSchema = createInsertSchema(recipes).pick({
   difficulty: true,
   calories: true,
   userId: true,
+  source: true,
 });
 
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;

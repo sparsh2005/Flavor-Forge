@@ -3,9 +3,21 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { insertRecipeSchema, insertIngredientSchema, insertInstructionSchema } from "@shared/schema";
+import { 
+  insertRecipeSchema, 
+  insertIngredientSchema, 
+  insertInstructionSchema,
+  Recipe
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { 
+  getRandomMeals, 
+  getMealsByCategory, 
+  getRecipeDetails,
+  getPopularCategories,
+  searchMeals
+} from "./mealdb-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -20,35 +32,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Recipe routes
-  // Get all recipes
+  // Get all recipes (from local storage + TheMealDB API)
   app.get("/api/recipes", async (req, res) => {
     try {
-      const recipes = await storage.getRecipes();
+      // Get local recipes
+      const localRecipes = await storage.getRecipes();
+      
+      // Get recipes from TheMealDB API (only if we don't have many local recipes)
+      let apiRecipes: Recipe[] = [];
+      if (localRecipes.length < 10) {
+        apiRecipes = await getRandomMeals(10 - localRecipes.length);
+      }
+      
+      // Combine local and API recipes
+      const recipes = [...localRecipes, ...apiRecipes];
       res.json(recipes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch recipes" });
     }
   });
 
-  // Get top recipes
+  // Get top recipes (from TheMealDB API if no local recipes)
   app.get("/api/recipes/top", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 4;
-      const recipes = await storage.getTopRecipes(limit);
+      const limit = parseInt(req.query.limit as string) || 6;
+      
+      // Get top recipes from storage
+      const localRecipes = await storage.getTopRecipes(limit);
+      
+      // If we have enough local recipes, return them
+      if (localRecipes.length >= limit) {
+        return res.json(localRecipes);
+      }
+      
+      // Otherwise, supplement with API recipes
+      const apiRecipes = await getRandomMeals(limit - localRecipes.length);
+      const recipes = [...localRecipes, ...apiRecipes];
+      
       res.json(recipes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch top recipes" });
     }
   });
 
-  // Get recent recipes
+  // Get recent recipes (from TheMealDB API if no local recipes)
   app.get("/api/recipes/recent", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 3;
-      const recipes = await storage.getRecentRecipes(limit);
+      
+      // Get recent recipes from storage
+      const localRecipes = await storage.getRecentRecipes(limit);
+      
+      // If we have enough local recipes, return them
+      if (localRecipes.length >= limit) {
+        return res.json(localRecipes);
+      }
+      
+      // Otherwise, supplement with API recipes
+      const apiRecipes = await getRandomMeals(limit - localRecipes.length);
+      const recipes = [...localRecipes, ...apiRecipes];
+      
       res.json(recipes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch recent recipes" });
+    }
+  });
+  
+  // Get meal categories from TheMealDB API
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await getPopularCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+  
+  // Get recipes by category from TheMealDB API
+  app.get("/api/recipes/category/:category", async (req, res) => {
+    try {
+      const category = req.params.category;
+      const recipes = await getMealsByCategory(category);
+      res.json(recipes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch recipes by category" });
+    }
+  });
+  
+  // Search for recipes from TheMealDB API
+  app.get("/api/recipes/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const recipes = await searchMeals(query);
+      res.json(recipes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to search recipes" });
     }
   });
 
@@ -67,25 +149,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/recipes/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // First, try to get from local storage
       const recipe = await storage.getRecipe(id);
       
-      if (!recipe) {
+      if (recipe) {
+        // This is a local recipe, get its ingredients, instructions, and author
+        const ingredients = await storage.getIngredientsByRecipe(id);
+        const instructions = await storage.getInstructionsByRecipe(id);
+        
+        // Get the author information
+        const author = await storage.getUser(recipe.userId);
+        const authorName = author ? author.name : "Unknown";
+        
+        return res.json({
+          ...recipe,
+          ingredients,
+          instructions,
+          authorName
+        });
+      }
+      
+      // If not found in local storage, try getting from TheMealDB API
+      // TheMealDB API has IDs that are typically much larger than our local IDs
+      // so this fallback will mostly be used for API recipes
+      const recipeDetails = await getRecipeDetails(id);
+      
+      if (!recipeDetails) {
         return res.status(404).json({ message: "Recipe not found" });
       }
       
-      const ingredients = await storage.getIngredientsByRecipe(id);
-      const instructions = await storage.getInstructionsByRecipe(id);
+      // Return the recipe details from the API
+      res.json(recipeDetails);
       
-      // Get the author information
-      const author = await storage.getUser(recipe.userId);
-      const authorName = author ? author.name : "Unknown";
-      
-      res.json({
-        ...recipe,
-        ingredients,
-        instructions,
-        authorName
-      });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch recipe" });
     }

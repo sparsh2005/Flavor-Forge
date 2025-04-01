@@ -11,12 +11,16 @@ import RecipeDetailsPage from "@/pages/recipe-details-page";
 import AddRecipePage from "@/pages/add-recipe-page";
 import MyRecipesPage from "@/pages/my-recipes-page";
 import ProfilePage from "@/pages/profile-page";
+import SearchResultsPage from "@/pages/search-results-page";
+import CategoryPage from "@/pages/category-page";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/recipes/search" component={SearchResultsPage} />
+      <Route path="/recipes/category/:category" component={CategoryPage} />
       <Route path="/recipes/:id" component={RecipeDetailsPage} />
       <ProtectedRoute path="/add-recipe" component={AddRecipePage} />
       <ProtectedRoute path="/my-recipes" component={MyRecipesPage} />
