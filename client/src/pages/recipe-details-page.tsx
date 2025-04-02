@@ -11,7 +11,7 @@ import {
   Flame
 } from "lucide-react";
 import { Recipe, Ingredient, Instruction } from "@shared/schema";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 
 type RecipeDetails = Recipe & {
   ingredients: Ingredient[];
@@ -121,7 +121,9 @@ export default function RecipeDetailsPage() {
                     <div className="flex items-center">
                       <CalendarClock className="h-4 w-4 mr-1" />
                       <span>
-                        {formatDistanceToNow(new Date(recipe.createdAt), { addSuffix: true })}
+                        {recipe.createdAt && isValid(new Date(recipe.createdAt)) 
+                          ? formatDistanceToNow(new Date(recipe.createdAt), { addSuffix: true })
+                          : "Date not available"}
                       </span>
                     </div>
                   </div>
