@@ -36,10 +36,13 @@ function convertMealToRecipe(meal: MealDbMeal): Recipe {
   // Estimate servings based on ingredients or use default
   const servings = estimateServings(meal);
   
+  // Create a descriptive summary of the recipe rather than using instructions
+  const description = createRecipeDescription(meal);
+  
   return {
     id: parseInt(meal.idMeal),
     title: meal.strMeal,
-    description: meal.strInstructions.slice(0, 200) + "...", // Short preview
+    description: description,
     imageUrl: meal.strMealThumb,
     prepTime: 20, // Estimated since TheMealDB doesn't provide this
     cookTime: 40, // Estimated since TheMealDB doesn't provide this
@@ -53,6 +56,38 @@ function convertMealToRecipe(meal: MealDbMeal): Recipe {
     createdAt: new Date(),
     source: meal.strSource ? new URL(meal.strSource).hostname : "TheMealDB"
   } as Recipe;
+}
+
+// Create a proper description for the recipe
+function createRecipeDescription(meal: MealDbMeal): string {
+  let description = "";
+  
+  // Use area (cuisine) information
+  if (meal.strArea) {
+    description = `An authentic ${meal.strArea} dish `;
+  } else {
+    description = "A delicious dish ";
+  }
+  
+  // Add category information
+  if (meal.strCategory) {
+    description += `from the ${meal.strCategory.toLowerCase()} category. `;
+  } else {
+    description += "from our collection. ";
+  }
+  
+  // Add tags information
+  if (meal.strTags) {
+    const tags = meal.strTags.split(',').map(tag => tag.trim()).filter(tag => tag);
+    if (tags.length > 0) {
+      description += `It features ${tags.join(', ')}. `;
+    }
+  }
+  
+  // Finish the description
+  description += "Try this recipe today for a wonderful culinary experience!";
+  
+  return description;
 }
 
 // Estimate calories based on category and ingredients

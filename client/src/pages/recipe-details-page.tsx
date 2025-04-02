@@ -201,7 +201,9 @@ export default function RecipeDetailsPage() {
                         Description
                       </h2>
                       <p className="text-gray-600 leading-relaxed mb-4">
-                        {recipe.description}
+                        {(!recipe.description || recipe.description.trim() === "") ? (
+                          <span className="italic text-gray-400">No description available</span>
+                        ) : recipe.description}
                       </p>
                     </div>
                     
