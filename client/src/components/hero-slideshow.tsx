@@ -11,7 +11,7 @@ const foodImages = [
     category: "Chicken",
   },
   {
-    url: "https://images.unsplash.com/photo-1593560708920-61b98ae52d42?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=1920&auto=format&fit=crop",
     category: "Pasta",
   },
   {
