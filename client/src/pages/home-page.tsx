@@ -117,10 +117,8 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-10">
             <h2 className="font-display text-3xl font-bold text-gray-800">Top Recipes</h2>
-            <Link href="/">
-              <a className="text-primary font-medium flex items-center hover:underline">
-                View all <span className="ml-1">→</span>
-              </a>
+            <Link href="/" className="text-primary font-medium flex items-center hover:underline">
+              View all <span className="ml-1">→</span>
             </Link>
           </div>
           
@@ -164,10 +162,8 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-10">
             <h2 className="font-display text-3xl font-bold text-gray-800">Recently Added</h2>
-            <Link href="/">
-              <a className="text-primary font-medium flex items-center hover:underline">
-                View all <span className="ml-1">→</span>
-              </a>
+            <Link href="/" className="text-primary font-medium flex items-center hover:underline">
+              View all <span className="ml-1">→</span>
             </Link>
           </div>
           
@@ -261,10 +257,10 @@ export default function HomePage() {
               Join our community of food enthusiasts and share your favorite recipes with the world.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/add-recipe">
+              <Link href="/add-recipe" className="contents">
                 <Button size="lg">Add Your Recipe</Button>
               </Link>
-              <Link href="/auth">
+              <Link href="/auth" className="contents">
                 <Button size="lg" variant="primary-outline">Join Community</Button>
               </Link>
             </div>
