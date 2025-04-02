@@ -15,7 +15,7 @@ const foodImages = [
     category: "Pasta",
   },
   {
-    url: "https://images.unsplash.com/photo-1619221882220-947b5ae1218d?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?q=80&w=1920&auto=format&fit=crop",
     category: "Beef",
   },
   {
@@ -23,11 +23,11 @@ const foodImages = [
     category: "Seafood",
   },
   {
-    url: "https://images.unsplash.com/photo-1587314168485-3236d6710814?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?q=80&w=1920&auto=format&fit=crop",
     category: "Dessert",
   },
   {
-    url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1533089860892-a7c6f10a081a?q=80&w=1920&auto=format&fit=crop",
     category: "Breakfast",
   },
   {
@@ -35,11 +35,11 @@ const foodImages = [
     category: "Vegetarian",
   },
   {
-    url: "https://images.unsplash.com/photo-1607098665874-fd193397547b?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=1920&auto=format&fit=crop",
     category: "Japanese",
   },
   {
-    url: "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1505253758473-96b7015fcd40?q=80&w=1920&auto=format&fit=crop",
     category: "Indian",
   },
 ];
