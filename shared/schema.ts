@@ -31,6 +31,10 @@ export const recipes = pgTable("recipes", {
   cookTime: integer("cook_time").notNull(), // in minutes
   difficulty: text("difficulty").notNull(), // 'Easy', 'Medium', 'Hard'
   calories: integer("calories"),
+  protein: integer("protein"), // in grams
+  fats: integer("fats"), // in grams
+  carbs: integer("carbs"), // in grams
+  servings: integer("servings"),
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   source: text("source"), // Source of the recipe (e.g., TheMealDB, user submitted)
@@ -44,6 +48,10 @@ export const insertRecipeSchema = createInsertSchema(recipes).pick({
   cookTime: true,
   difficulty: true,
   calories: true,
+  protein: true,
+  fats: true,
+  carbs: true,
+  servings: true,
   userId: true,
   source: true,
 });
