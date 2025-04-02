@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const authorName = author ? author.name : "Unknown";
         
         return res.json({
-          ...recipe,
+          recipe,
           ingredients,
           instructions,
           authorName

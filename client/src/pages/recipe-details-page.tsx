@@ -31,10 +31,27 @@ export default function RecipeDetailsPage() {
   const [, params] = useRoute<{ id: string }>("/recipes/:id");
   const recipeId = params?.id ? parseInt(params.id) : 0;
 
-  const { data: recipe, isLoading, error } = useQuery<RecipeDetails>({
+  const { data, isLoading, error } = useQuery<{
+    recipe: Recipe, 
+    ingredients: Ingredient[],
+    instructions: Instruction[],
+    authorName: string
+  }>({
     queryKey: [`/api/recipes/${recipeId}`],
     enabled: recipeId > 0,
   });
+  
+  // Combine all data into one object for easier reference
+  const recipe = data ? {
+    ...data.recipe,
+    ingredients: data.ingredients,
+    instructions: data.instructions,
+    authorName: data.authorName,
+    protein: data.recipe.protein,
+    fats: data.recipe.fats,
+    carbs: data.recipe.carbs,
+    servings: data.recipe.servings,
+  } as RecipeDetails : undefined;
 
   const getDifficultyColor = (difficulty?: string) => {
     if (!difficulty) return "bg-secondary";
