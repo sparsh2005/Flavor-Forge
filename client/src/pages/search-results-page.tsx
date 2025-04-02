@@ -12,30 +12,21 @@ export default function SearchResultsPage() {
   const [location] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Extract search query from URL
+  // Extract search query from sessionStorage on component mount
   useEffect(() => {
     try {
-      console.log('Current location:', location);
-      const parts = location.split('?');
-      console.log('URL parts:', parts);
+      const storedQuery = sessionStorage.getItem('searchQuery');
+      console.log('Retrieved search query from sessionStorage:', storedQuery);
       
-      if (parts.length > 1) {
-        const queryParams = new URLSearchParams(parts[1]);
-        const q = queryParams.get("q");
-        console.log('Query parameter "q":', q);
-        
-        if (q) {
-          setSearchQuery(q);
-        } else {
-          console.warn('No search query found in URL params');
-        }
+      if (storedQuery) {
+        setSearchQuery(storedQuery);
       } else {
-        console.warn('No query string in URL:', location);
+        console.warn('No search query found in sessionStorage');
       }
     } catch (err) {
-      console.error('Error parsing search URL:', err);
+      console.error('Error retrieving search query:', err);
     }
-  }, [location]);
+  }, []);
   
   // Fetch search results
   const { data: searchResults = [], isLoading, error } = useQuery<Recipe[]>({

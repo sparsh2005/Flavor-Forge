@@ -65,9 +65,9 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      const searchUrl = `/recipes/search?q=${encodeURIComponent(searchQuery.trim())}`;
-      console.log('Navigating to search URL:', searchUrl);
-      navigate(searchUrl);
+      // Store the search query in sessionStorage to pass it to the search page
+      sessionStorage.setItem('searchQuery', searchQuery.trim());
+      navigate('/recipes/search');
     }
   };
 
