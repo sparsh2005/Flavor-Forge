@@ -11,7 +11,7 @@ const foodImages = [
     category: "Chicken",
   },
   {
-    url: "https://images.unsplash.com/photo-1576506295286-5cda18df43e7?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1593560708920-61b98ae52d42?q=80&w=1920&auto=format&fit=crop",
     category: "Pasta",
   },
   {
@@ -27,7 +27,7 @@ const foodImages = [
     category: "Dessert",
   },
   {
-    url: "https://images.unsplash.com/photo-1533089860892-a7c6f10a081a?q=80&w=1920&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1484723091739-30a097e8f929?q=80&w=1920&auto=format&fit=crop",
     category: "Breakfast",
   },
   {
