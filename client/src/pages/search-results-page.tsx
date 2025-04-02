@@ -14,19 +14,53 @@ export default function SearchResultsPage() {
   
   // Extract search query from URL
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.split("?")[1]);
-    const q = queryParams.get("q");
-    if (q) {
-      setSearchQuery(q);
+    try {
+      console.log('Current location:', location);
+      const parts = location.split('?');
+      console.log('URL parts:', parts);
+      
+      if (parts.length > 1) {
+        const queryParams = new URLSearchParams(parts[1]);
+        const q = queryParams.get("q");
+        console.log('Query parameter "q":', q);
+        
+        if (q) {
+          setSearchQuery(q);
+        } else {
+          console.warn('No search query found in URL params');
+        }
+      } else {
+        console.warn('No query string in URL:', location);
+      }
+    } catch (err) {
+      console.error('Error parsing search URL:', err);
     }
   }, [location]);
   
   // Fetch search results
   const { data: searchResults = [], isLoading, error } = useQuery<Recipe[]>({
     queryKey: ["/api/recipes/search", searchQuery],
-    queryFn: () => 
-      fetch(`/api/recipes/search?q=${encodeURIComponent(searchQuery)}`)
-        .then(res => res.json()),
+    queryFn: async () => {
+      console.log(`Searching for: ${searchQuery}`);
+      const url = `/api/recipes/search?q=${encodeURIComponent(searchQuery)}`;
+      console.log(`Fetching from: ${url}`);
+      
+      try {
+        const res = await fetch(url);
+        console.log(`Search response status: ${res.status}`);
+        
+        if (!res.ok) {
+          throw new Error(`Search request failed with status ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log(`Received ${data.length} search results`);
+        return data;
+      } catch (err) {
+        console.error('Error in search query:', err);
+        throw err;
+      }
+    },
     enabled: !!searchQuery,
   });
   

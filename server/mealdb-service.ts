@@ -184,12 +184,24 @@ export async function getPopularCategories(): Promise<string[]> {
 
 export async function searchMeals(query: string): Promise<Recipe[]> {
   try {
-    const response = await fetch(`${MEALDB_API_URL}/search.php?s=${encodeURIComponent(query)}`);
+    console.log(`Searching meals with query: "${query}"`);
+    const url = `${MEALDB_API_URL}/search.php?s=${encodeURIComponent(query)}`;
+    console.log(`Making request to: ${url}`);
+    
+    const response = await fetch(url);
     const data = await response.json() as MealDbResponse;
     
-    if (!data.meals) return [];
+    console.log(`Search response status: ${response.status}`);
+    console.log(`Found meals: ${data.meals ? data.meals.length : 0}`);
     
-    return data.meals.map(meal => convertMealToRecipe(meal));
+    if (!data.meals) {
+      console.log('No meals found in search response');
+      return [];
+    }
+    
+    const recipes = data.meals.map(meal => convertMealToRecipe(meal));
+    console.log(`Converted ${recipes.length} meals to recipes`);
+    return recipes;
   } catch (error) {
     console.error("Error searching meals:", error);
     return [];
