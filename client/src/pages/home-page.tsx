@@ -2,6 +2,7 @@ import { Navbar } from "@/components/navigation/navbar";
 import { Footer } from "@/components/footer";
 import { RecipeCard } from "@/components/recipe-card";
 import { CategoryItem } from "@/components/category-item";
+import { HeroSlideshow } from "@/components/hero-slideshow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
@@ -76,41 +77,37 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#ffeae0] to-[#e1f7f5] py-16 md:py-24">
-        <div className="container mx-auto px-4">
+      <section className="relative py-20 md:py-32 h-[500px] md:h-[600px]">
+        {/* Slideshow background */}
+        <HeroSlideshow />
+        
+        <div className="relative container mx-auto px-4 h-full flex items-center justify-center">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-gray-800 mb-6">
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-white mb-6 drop-shadow-lg">
               Discover & Share Amazing Recipes
             </h1>
-            <p className="text-lg text-gray-600 mb-8">
+            <p className="text-lg text-white mb-8 drop-shadow-md">
               Find inspiration for your next meal from our collection of delicious recipes 
               created by food lovers like you.
             </p>
             
             <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-dark" size={18} />
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-dark z-10" size={18} />
               <Input
                 type="text"
                 placeholder="Search for recipes, ingredients, or cuisines..."
-                className="w-full pl-10 pr-24 py-6 rounded-lg bg-white"
+                className="w-full pl-10 pr-24 py-6 rounded-lg bg-white/90 backdrop-blur-sm shadow-lg"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <Button 
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10"
               >
                 Search
               </Button>
             </form>
           </div>
-        </div>
-        
-        <div className="hidden md:block absolute bottom-0 left-0 w-32 h-32 opacity-20">
-          <ChefHat className="text-primary" size={120} />
-        </div>
-        <div className="hidden md:block absolute top-10 right-10 w-20 h-20 opacity-20">
-          <Cake className="text-secondary" size={80} />
         </div>
       </section>
 
