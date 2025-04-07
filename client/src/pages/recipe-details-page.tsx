@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { Recipe, Ingredient, Instruction } from "@shared/schema";
 import { formatDistanceToNow, isValid } from "date-fns";
+import { RecipeReviews } from "@/components/recipe-reviews";
+import { FavoriteButton } from "@/components/favorite-button";
+import { AddToShoppingListButton } from "@/components/add-to-shopping-list-button";
 
 type RecipeDetails = Recipe & {
   ingredients: Ingredient[];
@@ -197,9 +200,15 @@ export default function RecipeDetailsPage() {
                   {/* Left column - Description and Instructions */}
                   <div className="md:col-span-2">
                     <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-                      <h2 className="font-display text-2xl font-bold text-gray-800 mb-4">
-                        Description
-                      </h2>
+                      <div className="flex justify-between items-start mb-4">
+                        <h2 className="font-display text-2xl font-bold text-gray-800">
+                          Description
+                        </h2>
+                        <div className="flex space-x-2">
+                          <FavoriteButton recipeId={recipe.id} size="sm" />
+                          <AddToShoppingListButton recipeId={recipe.id} variant="outline" size="sm" />
+                        </div>
+                      </div>
                       <p className="text-gray-600 leading-relaxed mb-4">
                         {(!recipe.description || recipe.description.trim() === "") ? (
                           <span className="italic text-gray-400">No description available</span>
@@ -291,6 +300,16 @@ export default function RecipeDetailsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+                
+                {/* Reviews Section */}
+                <div className="mt-12 container mx-auto px-4 pb-8">
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="font-display text-2xl font-bold text-gray-800 mb-6">
+                      Reviews
+                    </h2>
+                    <RecipeReviews recipeId={recipe.id} recipeTitle={recipe.title} />
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { ChefHat, Menu, X } from "lucide-react";
+import { ChefHat, Menu, X, ShoppingBag } from "lucide-react";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,6 +47,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/profile" className={`font-medium ${isActive('/profile') ? 'text-primary' : 'text-gray-800 hover:text-primary'} transition-all`}>
                   Profile
+                </Link>
+                <Link href="/shopping-list" className={`font-medium flex items-center ${isActive('/shopping-list') ? 'text-primary' : 'text-gray-800 hover:text-primary'} transition-all`}>
+                  <ShoppingBag className="h-4 w-4 mr-1" /> Shopping List
                 </Link>
                 <Button 
                   variant="primary-outline" 
@@ -94,6 +97,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/profile" className={`font-medium ${isActive('/profile') ? 'text-primary' : 'text-gray-800 hover:text-primary'} transition-all`}>
                   Profile
+                </Link>
+                <Link href="/shopping-list" className={`font-medium flex items-center ${isActive('/shopping-list') ? 'text-primary' : 'text-gray-800 hover:text-primary'} transition-all`}>
+                  <ShoppingBag className="h-4 w-4 mr-1" /> Shopping List
                 </Link>
                 <Button 
                   variant="default" 

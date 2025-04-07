@@ -13,6 +13,7 @@ import MyRecipesPage from "@/pages/my-recipes-page";
 import ProfilePage from "@/pages/profile-page";
 import SearchResultsPage from "@/pages/search-results-page";
 import CategoryPage from "@/pages/category-page";
+import ShoppingListPage from "@/pages/shopping-list-page";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <ProtectedRoute path="/add-recipe" component={AddRecipePage} />
       <ProtectedRoute path="/my-recipes" component={MyRecipesPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/shopping-list" component={ShoppingListPage} />
       <Route component={NotFound} />
     </Switch>
   );

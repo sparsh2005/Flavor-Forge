@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, primaryKey, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,6 +9,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   password: text("password").notNull(),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -16,6 +19,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   name: true,
   password: true,
+  bio: true,
+  avatarUrl: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -35,9 +40,12 @@ export const recipes = pgTable("recipes", {
   fats: integer("fats"), // in grams
   carbs: integer("carbs"), // in grams
   servings: integer("servings"),
+  rating: real("rating"), // Average rating, calculated from reviews
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   source: text("source"), // Source of the recipe (e.g., TheMealDB, user submitted)
+  cookingTips: text("cooking_tips"), // Optional cooking tips
+  tags: text("tags").array(), // Array of tags like "Vegan", "Quick", etc.
 });
 
 export const insertRecipeSchema = createInsertSchema(recipes).pick({
@@ -52,8 +60,11 @@ export const insertRecipeSchema = createInsertSchema(recipes).pick({
   fats: true,
   carbs: true,
   servings: true,
+  rating: true,
   userId: true,
   source: true,
+  cookingTips: true,
+  tags: true,
 });
 
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
@@ -94,3 +105,112 @@ export const insertInstructionSchema = createInsertSchema(instructions).pick({
 
 export type InsertInstruction = z.infer<typeof insertInstructionSchema>;
 export type Instruction = typeof instructions.$inferSelect;
+
+// Reviews and Ratings table
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Foreign key to users
+  recipeId: integer("recipe_id").notNull(), // Foreign key to recipes
+  rating: integer("rating").notNull(), // 1-5 rating
+  comment: text("comment").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).pick({
+  userId: true,
+  recipeId: true,
+  rating: true,
+  comment: true,
+});
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
+
+// Favorites table (many-to-many relationship between users and recipes)
+export const favorites = pgTable("favorites", {
+  userId: integer("user_id").notNull(), // Foreign key to users
+  recipeId: integer("recipe_id").notNull(), // Foreign key to recipes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.userId, table.recipeId] }),
+  };
+});
+
+export const insertFavoriteSchema = createInsertSchema(favorites).pick({
+  userId: true,
+  recipeId: true,
+});
+
+export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
+export type Favorite = typeof favorites.$inferSelect;
+
+// Shopping List table
+export const shoppingList = pgTable("shopping_list", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Foreign key to users
+  item: text("item").notNull(),
+  quantity: text("quantity"),
+  unit: text("unit"),
+  checked: boolean("checked").default(false).notNull(),
+  recipeId: integer("recipe_id"), // Optional, to know which recipe this item is from
+  spoonacularId: integer("spoonacular_id"), // Optional, to store Spoonacular ingredient ID for nutrition data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertShoppingListSchema = createInsertSchema(shoppingList).pick({
+  userId: true,
+  item: true,
+  quantity: true,
+  unit: true,
+  checked: true,
+  recipeId: true,
+  spoonacularId: true,
+});
+
+export type InsertShoppingListItem = z.infer<typeof insertShoppingListSchema>;
+export type ShoppingListItem = typeof shoppingList.$inferSelect;
+
+// Meal Planner table
+export const mealPlans = pgTable("meal_plans", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Foreign key to users
+  recipeId: integer("recipe_id").notNull(), // Foreign key to recipes
+  plannedDate: timestamp("planned_date").notNull(),
+  mealType: text("meal_type").notNull(), // 'breakfast', 'lunch', 'dinner', 'snack'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMealPlanSchema = createInsertSchema(mealPlans).pick({
+  userId: true,
+  recipeId: true,
+  plannedDate: true,
+  mealType: true,
+  notes: true,
+});
+
+export type InsertMealPlan = z.infer<typeof insertMealPlanSchema>;
+export type MealPlan = typeof mealPlans.$inferSelect;
+
+// User Activity Log table
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Foreign key to users
+  action: text("action").notNull(), // 'create_recipe', 'review', 'favorite', etc.
+  entityId: integer("entity_id"), // ID of the related entity (recipe, review, etc.)
+  entityType: text("entity_type"), // 'recipe', 'review', 'shopping_list', etc.
+  details: text("details"), // Optional additional details
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).pick({
+  userId: true,
+  action: true,
+  entityId: true,
+  entityType: true,
+  details: true,
+});
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
