@@ -55,6 +55,7 @@ export interface IStorage {
   
   // Shopping List methods
   getShoppingList(userId: number): Promise<ShoppingListItem[]>;
+  getShoppingListItem(id: number): Promise<ShoppingListItem | undefined>;
   addToShoppingList(item: InsertShoppingListItem): Promise<ShoppingListItem>;
   updateShoppingListItem(id: number, item: Partial<InsertShoppingListItem>): Promise<ShoppingListItem | undefined>;
   deleteShoppingListItem(id: number): Promise<boolean>;
@@ -351,6 +352,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.shoppingItems.values())
       .filter(item => item.userId === userId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+  
+  async getShoppingListItem(id: number): Promise<ShoppingListItem | undefined> {
+    return this.shoppingItems.get(id);
   }
   
   async addToShoppingList(insertItem: InsertShoppingListItem): Promise<ShoppingListItem> {

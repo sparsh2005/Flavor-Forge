@@ -10,15 +10,46 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Loader2, ShoppingBasket, Trash2, ShoppingCart, ArrowRight } from "lucide-react";
+import { Loader2, ShoppingBasket, Trash2, ShoppingCart, ArrowRight, Info, Search, Apple } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+
+// Nutrition info interface
+interface NutritionInfo {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+}
+
+// Ingredient from Spoonacular search
+interface Ingredient {
+  id: number;
+  name: string;
+  image: string;
+  amount: number;
+  unit: string;
+}
 
 export default function ShoppingListPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIngredientId, setSelectedIngredientId] = useState<number | null>(null);
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [newItem, setNewItem] = useState({ item: "", quantity: "", unit: "" });
   
   // Query to fetch the shopping list
   const {
@@ -29,6 +60,56 @@ export default function ShoppingListPage() {
     queryKey: ["/api/shopping-list"],
     queryFn: getQueryFn({ on401: "throw" }),
     enabled: !!user,
+  });
+  
+  // Query to get nutrition data for a selected item
+  const {
+    data: nutritionData,
+    isLoading: isLoadingNutrition,
+    error: nutritionError
+  } = useQuery<NutritionInfo>({
+    queryKey: ["/api/shopping-list", selectedItemId, "nutrition"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!selectedItemId && !!user,
+  });
+  
+  // Query to search ingredients
+  const {
+    data: ingredientSearchResults,
+    isLoading: isSearchingIngredients,
+    error: searchIngredientsError
+  } = useQuery<Ingredient[]>({
+    queryKey: ["/api/ingredients/search", searchQuery],
+    queryFn: () => 
+      fetch(`/api/ingredients/search?q=${encodeURIComponent(searchQuery)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to search ingredients");
+          return res.json();
+        }),
+    enabled: searchQuery.length > 2 && isSearchDialogOpen,
+  });
+  
+  // Mutation to link a Spoonacular ingredient ID to a shopping list item
+  const linkIngredientMutation = useMutation({
+    mutationFn: async ({ itemId, spoonacularId }: { itemId: number; spoonacularId: number }) => {
+      await apiRequest("PUT", `/api/shopping-list/${itemId}/spoonacular`, { spoonacularId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/shopping-list"] });
+      toast({
+        title: "Ingredient linked",
+        description: "Now you can view nutritional information for this item",
+      });
+      setIsSearchDialogOpen(false);
+      setSearchQuery("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to link ingredient",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
   
   // Mutation to update a shopping list item (mark as checked/unchecked)
@@ -90,6 +171,33 @@ export default function ShoppingListPage() {
     },
   });
   
+  // Mutation to add a new item to the shopping list
+  const addItemMutation = useMutation({
+    mutationFn: async (item: { item: string; quantity: string; unit: string }) => {
+      await apiRequest("POST", "/api/shopping-list", {
+        ...item,
+        userId: user?.id,
+        quantity: parseFloat(item.quantity) || 1
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/shopping-list"] });
+      setIsAddItemDialogOpen(false);
+      setNewItem({ item: "", quantity: "", unit: "" });
+      toast({
+        title: "Item added",
+        description: "Item has been added to your shopping list",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to add item",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Handle toggling item checked status
   const handleToggleChecked = (id: number, currentChecked: boolean) => {
     updateItemMutation.mutate({ id, checked: !currentChecked });
@@ -140,6 +248,45 @@ export default function ShoppingListPage() {
     return <Redirect to="/auth" />;
   }
   
+  // Handle nutrition info dialog
+  const handleShowNutrition = (itemId: number) => {
+    setSelectedItemId(itemId);
+  };
+  
+  // Handle ingredient search
+  const handleSearchIngredients = (itemId: number) => {
+    setSelectedItemId(itemId);
+    setIsSearchDialogOpen(true);
+  };
+  
+  // Handle selecting an ingredient from search results
+  const handleSelectIngredient = (ingredientId: number) => {
+    setSelectedIngredientId(ingredientId);
+  };
+  
+  // Handle linking the selected ingredient to the shopping list item
+  const handleLinkIngredient = () => {
+    if (selectedItemId && selectedIngredientId) {
+      linkIngredientMutation.mutate({
+        itemId: selectedItemId,
+        spoonacularId: selectedIngredientId
+      });
+    }
+  };
+  
+  // Handle adding a new item to the shopping list
+  const handleAddItem = () => {
+    if (newItem.item.trim()) {
+      addItemMutation.mutate(newItem);
+    } else {
+      toast({
+        title: "Invalid item",
+        description: "Please enter an item name",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div className="bg-neutral-50 min-h-screen flex flex-col">
       <Navbar />
@@ -148,19 +295,231 @@ export default function ShoppingListPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-display font-bold text-gray-800">Shopping List</h1>
           
-          <Button 
-            variant="destructive" 
-            onClick={handleClearList}
-            disabled={isLoading || clearShoppingListMutation.isPending || !shoppingList?.length}
-          >
-            {clearShoppingListMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="mr-2 h-4 w-4" />
-            )}
-            Clear List
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setIsAddItemDialogOpen(true)}
+            >
+              <Apple className="mr-2 h-4 w-4" />
+              Add Item
+            </Button>
+            
+            <Button 
+              variant="destructive" 
+              onClick={handleClearList}
+              disabled={isLoading || clearShoppingListMutation.isPending || !shoppingList?.length}
+            >
+              {clearShoppingListMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Clear List
+            </Button>
+          </div>
         </div>
+        
+        {/* Add Item Dialog */}
+        <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Item to Shopping List</DialogTitle>
+              <DialogDescription>
+                Add your own item to your shopping list
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 gap-2 items-center">
+                <label htmlFor="item" className="text-right font-medium">
+                  Item:
+                </label>
+                <Input
+                  id="item"
+                  value={newItem.item}
+                  onChange={(e) => setNewItem({...newItem, item: e.target.value})}
+                  placeholder="Tomatoes"
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 gap-2 items-center">
+                <label htmlFor="quantity" className="text-right font-medium">
+                  Quantity:
+                </label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={newItem.quantity}
+                  onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
+                  placeholder="2"
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 gap-2 items-center">
+                <label htmlFor="unit" className="text-right font-medium">
+                  Unit:
+                </label>
+                <Input
+                  id="unit"
+                  value={newItem.unit}
+                  onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
+                  placeholder="cups"
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddItemDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddItem}
+                disabled={addItemMutation.isPending || !newItem.item.trim()}
+              >
+                {addItemMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Add to List
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Nutrition Data Dialog */}
+        <Dialog open={!!selectedItemId && !isSearchDialogOpen} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Nutrition Information</DialogTitle>
+              <DialogDescription>
+                {shoppingList?.find(item => item.id === selectedItemId)?.item}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingNutrition ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : nutritionError ? (
+              <div className="p-6 text-center">
+                <p className="mb-4 text-muted-foreground">No nutrition data available for this item.</p>
+                <Button onClick={() => handleSearchIngredients(selectedItemId!)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  Search for Ingredient
+                </Button>
+              </div>
+            ) : nutritionData ? (
+              <div className="grid grid-cols-2 gap-4 py-4">
+                <div className="bg-primary/10 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-primary">{nutritionData.calories}</div>
+                  <div className="text-sm text-muted-foreground">Calories</div>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">{nutritionData.protein}g</div>
+                  <div className="text-sm text-muted-foreground">Protein</div>
+                </div>
+                <div className="bg-red-100 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-red-600">{nutritionData.fat}g</div>
+                  <div className="text-sm text-muted-foreground">Fat</div>
+                </div>
+                <div className="bg-yellow-100 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-yellow-600">{nutritionData.carbs}g</div>
+                  <div className="text-sm text-muted-foreground">Carbs</div>
+                </div>
+              </div>
+            ) : null}
+            
+            <DialogFooter className="sm:justify-between">
+              <Button variant="outline" onClick={() => setSelectedItemId(null)}>
+                Close
+              </Button>
+              {!isLoadingNutrition && !nutritionData && (
+                <Button onClick={() => handleSearchIngredients(selectedItemId!)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  Search for Ingredient
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Ingredient Search Dialog */}
+        <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Find Ingredient</DialogTitle>
+              <DialogDescription>
+                Search for an ingredient to get nutrition information
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  placeholder="Search ingredients (e.g., apple, chicken, rice)" 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              {isSearchingIngredients && (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+              
+              {searchIngredientsError && (
+                <p className="text-destructive text-center text-sm">Error searching ingredients</p>
+              )}
+              
+              {!isSearchingIngredients && ingredientSearchResults && ingredientSearchResults.length === 0 && searchQuery.length > 2 && (
+                <p className="text-muted-foreground text-center text-sm">No ingredients found</p>
+              )}
+              
+              {ingredientSearchResults && ingredientSearchResults.length > 0 && (
+                <div className="max-h-60 overflow-y-auto border rounded-md">
+                  {ingredientSearchResults.map((ingredient) => (
+                    <div 
+                      key={ingredient.id} 
+                      className={`p-2 flex items-center cursor-pointer hover:bg-muted ${
+                        selectedIngredientId === ingredient.id ? 'bg-muted' : ''
+                      }`}
+                      onClick={() => handleSelectIngredient(ingredient.id)}
+                    >
+                      <div className="flex-shrink-0 w-10 h-10 mr-3">
+                        <img src={ingredient.image} alt={ingredient.name} className="w-full h-full object-cover rounded" />
+                      </div>
+                      <div>
+                        <div className="font-medium">{ingredient.name}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsSearchDialogOpen(false);
+                setSearchQuery("");
+                setSelectedIngredientId(null);
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleLinkIngredient}
+                disabled={!selectedIngredientId || linkIngredientMutation.isPending}
+              >
+                {linkIngredientMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Link Ingredient
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         
         <Tabs defaultValue="all" className="mb-8" onValueChange={setActiveTab}>
           <TabsList>
@@ -219,9 +578,15 @@ export default function ShoppingListPage() {
                 ? "All items have been checked off." 
                 : "You haven't completed any items yet."}
             </p>
-            <Button size="sm" onClick={() => window.location.href = "/"}>
-              Browse Recipes <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <div className="flex justify-center gap-2">
+              <Button size="sm" onClick={() => window.location.href = "/"}>
+                Browse Recipes <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setIsAddItemDialogOpen(true)}>
+                <Apple className="mr-2 h-4 w-4" />
+                Add New Item
+              </Button>
+            </div>
           </CardContent>
         </Card>
       );
@@ -265,11 +630,28 @@ export default function ShoppingListPage() {
                         >
                           {item.quantity} {item.unit ? `${item.unit} ` : ''}{item.item}
                         </label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleShowNutrition(item.id)}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Info className="h-4 w-4 text-primary" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View nutrition info</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteItem(item.id)}
-                          className="ml-auto h-7 w-7 p-0"
+                          className="h-7 w-7 p-0"
                         >
                           <Trash2 className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -314,11 +696,28 @@ export default function ShoppingListPage() {
                 >
                   {item.quantity} {item.unit ? `${item.unit} ` : ''}{item.item}
                 </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleShowNutrition(item.id)}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Info className="h-4 w-4 text-primary" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View nutrition info</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDeleteItem(item.id)}
-                  className="ml-auto h-7 w-7 p-0"
+                  className="h-7 w-7 p-0"
                 >
                   <Trash2 className="h-4 w-4 text-muted-foreground" />
                 </Button>
