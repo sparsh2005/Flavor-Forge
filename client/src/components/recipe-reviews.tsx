@@ -213,7 +213,7 @@ export function RecipeReviews({ recipeId, recipeTitle }: RecipeReviewsProps) {
                 <div className="flex items-start gap-4">
                   <Avatar>
                     <AvatarFallback>
-                      {review.userName.slice(0, 2).toUpperCase()}
+                      {review.userName ? review.userName.slice(0, 2).toUpperCase() : 'UN'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-1">

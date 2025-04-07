@@ -177,7 +177,7 @@ export default function ShoppingListPage() {
       await apiRequest("POST", "/api/shopping-list", {
         ...item,
         userId: user?.id,
-        quantity: parseFloat(item.quantity) || 1
+        quantity: item.quantity.toString() // Ensure quantity is a string as defined in schema
       });
     },
     onSuccess: () => {
@@ -349,7 +349,7 @@ export default function ShoppingListPage() {
                 </label>
                 <Input
                   id="quantity"
-                  type="number"
+                  type="text"
                   value={newItem.quantity}
                   onChange={(e) => setNewItem({...newItem, quantity: e.target.value})}
                   placeholder="2"
