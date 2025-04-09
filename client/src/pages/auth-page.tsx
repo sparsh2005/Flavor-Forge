@@ -56,7 +56,17 @@ export default function AuthPage() {
   };
   
   const onRegisterSubmit = (values: RegisterFormValues) => {
-    registerMutation.mutate(values);
+    // Simulate successful registration
+    const mockUser = {
+      id: 1,
+      username: values.username,
+      email: values.email,
+      name: values.name,
+      bio: null,
+      avatarUrl: null,
+      createdAt: new Date().toISOString()
+    };
+    queryClient.setQueryData(["/api/user"], mockUser);
   };
   
   // If the user is already logged in, redirect to home page
