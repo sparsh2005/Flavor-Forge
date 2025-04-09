@@ -1,7 +1,10 @@
 import { Recipe, Ingredient, Instruction } from "@shared/schema";
 import fetch from "node-fetch";
+import { log } from "./vite";
 
 const MEALDB_API_URL = "https://www.themealdb.com/api/json/v1/1";
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 // Define TheMealDB response types
 interface MealDbMeal {
@@ -23,6 +26,36 @@ interface MealDbCategoryResponse {
     strCategory: string;
     [key: string]: string | undefined;
   }[] | null;
+}
+
+// Utility function to add retry logic to fetch calls
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<any> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      // Using node-fetch options
+      timeout: 8000,
+      size: 0,
+      follow: 20,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    if (retries > 0) {
+      log(`Retrying fetch to ${url}, ${retries} attempts remaining`, "api");
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
 }
 
 // Utility function to convert TheMealDB recipe to our Recipe format
@@ -250,22 +283,37 @@ function createInstructions(instructions: string, recipeId: number): Instruction
 export async function getRandomMeals(count: number = 10): Promise<Recipe[]> {
   const recipes: Recipe[] = [];
   
-  // TheMealDB only returns one random meal at a time, so we need to make multiple requests
-  const requests = Array(count).fill(null).map(() => 
-    fetch(`${MEALDB_API_URL}/random.php`)
-      .then(response => response.json())
-      .then((data: unknown) => {
-        const typedData = data as MealDbResponse;
-        if (typedData.meals && typedData.meals[0]) {
-          const recipe = convertMealToRecipe(typedData.meals[0]);
+  try {
+    // TheMealDB only returns one random meal at a time, so we need to make multiple requests
+    const requests = Array(count).fill(null).map(async () => {
+      try {
+        const data = await fetchWithRetry(`${MEALDB_API_URL}/random.php`);
+        if (data.meals?.[0]) {
+          const recipe = convertMealToRecipe(data.meals[0]);
           recipes.push(recipe);
         }
-      })
-      .catch(err => console.error("Error fetching random meal:", err))
-  );
-  
-  await Promise.all(requests);
-  return recipes;
+      } catch (err) {
+        log(`Error fetching random meal: ${err}`, "api");
+      }
+    });
+    
+    await Promise.all(requests);
+    
+    // If we didn't get enough recipes, try getting from popular categories
+    if (recipes.length < count) {
+      const categories = await getPopularCategories();
+      if (categories.length > 0) {
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        const categoryRecipes = await getMealsByCategory(category);
+        recipes.push(...categoryRecipes.slice(0, count - recipes.length));
+      }
+    }
+    
+    return recipes;
+  } catch (err) {
+    log(`Failed to fetch recipes: ${err}`, "api");
+    return [];
+  }
 }
 
 export async function getMealsByCategory(category: string): Promise<Recipe[]> {

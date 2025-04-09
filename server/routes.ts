@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
 import { z } from "zod";
 import { 
   insertRecipeSchema, 
@@ -30,9 +29,6 @@ import {
 } from "./spoonacular-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication routes
-  setupAuth(app);
-
   // Ensure user is authenticated for protected routes
   const ensureAuthenticated = (req: any, res: any, next: any) => {
     if (req.isAuthenticated()) {

@@ -48,29 +48,51 @@ interface SpoonacularNutritionResponse {
 
 const API_KEY = process.env.SPOONACULAR_API_KEY;
 const BASE_URL = "https://api.spoonacular.com";
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+// Utility function to add retry logic to fetch calls
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<any> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      timeout: 8000,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (retries > 0) {
+      log(`Retrying fetch to ${url}, ${retries} attempts remaining`, "api");
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
+}
 
 /**
  * Search for ingredients by name
  */
 export async function searchIngredients(query: string): Promise<SpoonacularIngredient[]> {
+  if (!API_KEY) {
+    log("Spoonacular API key is not configured", "api");
+    return [];
+  }
+
   try {
-    const response = await fetch(
-      `${BASE_URL}/food/ingredients/search?apiKey=${API_KEY}&query=${encodeURIComponent(query)}&number=5&metaInformation=true`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const data = await fetchWithRetry(
+      `${BASE_URL}/food/ingredients/search?apiKey=${API_KEY}&query=${encodeURIComponent(query)}&number=5&metaInformation=true`
     );
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      log(`Spoonacular API error: ${response.status} ${errorText}`, "spoonacular");
-      return [];
-    }
-    
-    const data = (await response.json()) as SpoonacularIngredientSearchResponse;
-    return data.results.map((result) => ({
+    return data.results.map((result: any) => ({
       id: result.id,
       name: result.name,
       image: `https://spoonacular.com/cdn/ingredients_100x100/${result.image}`,
@@ -78,7 +100,7 @@ export async function searchIngredients(query: string): Promise<SpoonacularIngre
       unit: "",
     }));
   } catch (error) {
-    log(`Error searching ingredients: ${error}`, "spoonacular");
+    log(`Error searching ingredients: ${error}`, "api");
     return [];
   }
 }
