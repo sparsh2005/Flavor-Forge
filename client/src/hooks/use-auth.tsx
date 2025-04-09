@@ -66,8 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      // Mock successful registration
-      return {
+      const mockUser = {
         id: 1,
         username: userData.username,
         email: userData.email,
@@ -76,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatarUrl: null,
         createdAt: new Date().toISOString()
       };
+      return mockUser;
     },
     onSuccess: (userData) => {
       queryClient.setQueryData(["/api/user"], userData);
